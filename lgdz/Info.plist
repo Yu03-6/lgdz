@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>ViVi uses your camera to show live video when you chat with fellow dog walkers.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>ViVi uses your microphone so you can speak during video calls with your dog-walking friends.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ViVi uses your photo library so you can attach walk and pet photos to community posts.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
