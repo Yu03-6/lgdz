@@ -5,22 +5,22 @@ workflows:
     instance_type: mac_mini_m2
     
     integrations:
-      app_store_connect: Tolky  # TODO: 改成你的 App Store Connect 集成名称
+      app_store_connect: vivi  # TODO: 改成你的 App Store Connect 集成名称
     
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.ydyg.Tolky # TODO: 改成你的 Bundle ID
+        bundle_identifier: com.lgdz.vivi # TODO: 改成你的 Bundle ID
       vars:
-        BUNDLE_ID: "com.ydyg.Tolky"  # TODO: 与上面保持一致
+        BUNDLE_ID: "com.lgdz.vivi"  # TODO: 与上面保持一致
       xcode: latest
       cocoapods: default
     
     scripts:
       - name: Set project settings
         script: |
-          XCODE_WORKSPACE="sleep.xcworkspace"
-          XCODE_SCHEME="sleep"
+          XCODE_WORKSPACE="lgdz.xcworkspace"
+          XCODE_SCHEME="lgdz"
           echo "XCODE_WORKSPACE=$XCODE_WORKSPACE" >> $CM_ENV
           echo "XCODE_SCHEME=$XCODE_SCHEME" >> $CM_ENV
           echo "Workspace: $XCODE_WORKSPACE"
