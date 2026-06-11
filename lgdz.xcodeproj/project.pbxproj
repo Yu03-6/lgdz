@@ -410,8 +410,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lgdz/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = vivi;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is needed to show your video during calls.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone access is needed during video calls.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "ViVi uses your camera to show live video when you chat with fellow dog walkers.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "ViVi uses your microphone so you can speak during video calls with your dog-walking friends.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ViVi uses your photo library so you can attach walk and pet photos to community posts.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -451,8 +452,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lgdz/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = vivi;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is needed to show your video during calls.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone access is needed during video calls.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "ViVi uses your camera to show live video when you chat with fellow dog walkers.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "ViVi uses your microphone so you can speak during video calls with your dog-walking friends.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ViVi uses your photo library so you can attach walk and pet photos to community posts.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
