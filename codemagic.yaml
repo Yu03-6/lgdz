@@ -10,9 +10,9 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.lgdz.vivi # TODO: 改成你的 Bundle ID
+        bundle_identifier: com.ViVi.lgdzydyg # TODO: 改成你的 Bundle ID
       vars:
-        BUNDLE_ID: "com.lgdz.vivi"  # TODO: 与上面保持一致
+        BUNDLE_ID: "com.ViVi.lgdzydyg"  # TODO: 与上面保持一致
       xcode: latest
       cocoapods: default
     
