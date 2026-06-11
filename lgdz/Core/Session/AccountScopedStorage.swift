@@ -17,6 +17,10 @@ final class AccountScopedStorage {
         defaults.set(value, forKey: scoped(key))
     }
 
+    func contains(_ key: String) -> Bool {
+        defaults.object(forKey: scoped(key)) != nil
+    }
+
     func int(_ key: String, default def: Int = 0) -> Int {
         defaults.object(forKey: scoped(key)) == nil ? def : defaults.integer(forKey: scoped(key))
     }

@@ -1,19 +1,31 @@
 import UIKit
 
-/// Screen 28 — Recharge. Balance card + 2×3 package grid (tap to buy) +
-/// 3 bottom button cards. Wallet is a local demo (§6: StoreKit not wired).
+/// Screen 28 — Recharge. Balance card + 3+3+1 package grid (tap to buy).
+/// Purchases use real StoreKit 2 consumable IAP.
 final class RechargeViewController: UIViewController {
 
-    private struct Package { let coins: Int; let price: String }
-    private let packages = Array(repeating: Package(coins: 1000, price: "$0.99"), count: 6)
-    private let bottomPackages: [Package] = [
-        Package(coins: 500, price: "$0.49"),
-        Package(coins: 1000, price: "$0.99"),
-        Package(coins: 2000, price: "$1.99"),
-    ]
+    private struct Package {
+        let productID: String
+        let coins: Int
+        var price: String
+    }
+    private var packages: [Package] = IAPProductCatalog.rechargeGridProducts.map {
+        Package(productID: $0.id, coins: $0.coins, price: $0.fallbackPrice)
+    }
     private var selected = 0
     private var tiles: [UIControl] = []
+
+    /// Design-canvas spacing from `充值.png`.
+    private enum Layout {
+        static let balanceToChoose: CGFloat = 68
+        static let chooseToGrid: CGFloat = 28
+        static let gridRowSpacing: CGFloat = 24
+        /// Matches the original 2×3 grid row height: (580 - 24) / 2.
+        static let tileRowHeight: CGFloat = 278
+        static let gridToFooter: CGFloat = 40
+    }
     private weak var balanceLabel: UILabel?
+    private var isPurchasing = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,10 +45,45 @@ final class RechargeViewController: UIViewController {
         super.viewWillAppear(animated)
         hideSystemNavBar()
         refreshBalance()
+        Task { await refreshStorePrices() }
     }
 
     @objc private func refreshBalance() {
         balanceLabel?.text = "\(AppSession.shared.coins)"
+    }
+
+    private func refreshStorePrices() async {
+        await StoreKitManager.shared.loadProducts()
+        packages = packages.map {
+            Package(
+                productID: $0.productID,
+                coins: $0.coins,
+                price: StoreKitManager.shared.displayPrice(forProductID: $0.productID))
+        }
+        updatePackageLabels()
+    }
+
+    private func updatePackageLabels() {
+        for (index, tile) in tiles.enumerated() where index < packages.count {
+            updatePriceLabel(in: tile, price: packages[index].price)
+            updateCoinsLabel(in: tile, coins: packages[index].coins)
+        }
+    }
+
+    private func updateCoinsLabel(in control: UIControl, coins: Int) {
+        for subview in control.subviews {
+            if let label = subview as? UILabel, !(subview is PaddingTag) {
+                label.text = "\(coins)"
+            }
+        }
+    }
+
+    private func updatePriceLabel(in control: UIControl, price: String) {
+        for subview in control.subviews {
+            if let tag = subview as? PaddingTag {
+                tag.text = price
+            }
+        }
     }
 
     private func build() {
@@ -55,40 +102,45 @@ final class RechargeViewController: UIViewController {
         choose.font = DesignTokens.Font.bold(44)
         choose.textColor = DesignTokens.Color.textPrimary
         choose.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(choose)
 
         let grid = UIStackView()
         grid.axis = .vertical
-        grid.spacing = 24.dp
-        grid.distribution = .fillEqually
+        grid.spacing = Layout.gridRowSpacing.dp
+        grid.distribution = .fill
         grid.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(grid)
-        var i = 0
-        while i < packages.count {
+
+        let packageSection = UIStackView(arrangedSubviews: [choose, grid])
+        packageSection.axis = .vertical
+        packageSection.spacing = Layout.chooseToGrid.dp
+        packageSection.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(packageSection)
+
+        var rowConstraints: [NSLayoutConstraint] = []
+        var tileIndex = 0
+        for productIDs in IAPProductCatalog.rechargeGridRows {
             let row = UIStackView()
             row.axis = .horizontal
             row.spacing = 24.dp
             row.distribution = .fillEqually
-            for j in i..<min(i + 3, packages.count) {
-                let tile = makeTile(packages[j], index: j)
+            rowConstraints.append(
+                row.heightAnchor.constraint(equalToConstant: Layout.tileRowHeight.dp))
+
+            for productID in productIDs {
+                guard tileIndex < packages.count else { break }
+                let tile = makeTile(packages[tileIndex], index: tileIndex)
                 tiles.append(tile)
                 row.addArrangedSubview(tile)
+                tileIndex += 1
             }
+
+            if productIDs.count == 1 {
+                row.addArrangedSubview(UIView())
+                row.addArrangedSubview(UIView())
+            }
+
             grid.addArrangedSubview(row)
-            i += 3
         }
         updateSelection()
-
-        let bottomRow = UIStackView()
-        bottomRow.axis = .horizontal
-        bottomRow.spacing = 24.dp
-        bottomRow.distribution = .fillEqually
-        bottomRow.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(bottomRow)
-        for (index, package) in bottomPackages.enumerated() {
-            let card = makeButtonCard(package, index: index)
-            bottomRow.addArrangedSubview(card)
-        }
 
         let footer = UILabel()
         footer.text = "*Use coins to unlock posting features\nand chat with AI*"
@@ -99,7 +151,7 @@ final class RechargeViewController: UIViewController {
         footer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(footer)
 
-        NSLayoutConstraint.activate([
+        NSLayoutConstraint.activate(rowConstraints + [
             header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             header.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -110,21 +162,18 @@ final class RechargeViewController: UIViewController {
             balance.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
             balance.heightAnchor.constraint(equalToConstant: 200.dp),
 
-            choose.topAnchor.constraint(equalTo: balance.bottomAnchor, constant: 40.dp),
-            choose.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            packageSection.topAnchor.constraint(
+                equalTo: balance.bottomAnchor, constant: Layout.balanceToChoose.dp),
+            packageSection.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            packageSection.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
 
-            grid.topAnchor.constraint(equalTo: choose.bottomAnchor, constant: 28.dp),
-            grid.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            grid.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
-            grid.heightAnchor.constraint(equalToConstant: 580.dp),
-
-            bottomRow.topAnchor.constraint(equalTo: grid.bottomAnchor, constant: 28.dp),
-            bottomRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            bottomRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
-            bottomRow.heightAnchor.constraint(equalToConstant: 200.dp),
-            footer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30.dp),
+            footer.topAnchor.constraint(
+                equalTo: packageSection.bottomAnchor, constant: Layout.gridToFooter.dp),
             footer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            bottomRow.bottomAnchor.constraint(equalTo: footer.topAnchor, constant: -30.dp),
+            footer.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: margin),
+            footer.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -margin),
+            footer.bottomAnchor.constraint(
+                lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30.dp),
         ])
     }
 
@@ -178,14 +227,21 @@ final class RechargeViewController: UIViewController {
         coins.font = DesignTokens.Font.bold(40)
         coins.textColor = DesignTokens.Color.textPrimary
         coins.textAlignment = .center
+        coins.adjustsFontSizeToFitWidth = true
+        coins.minimumScaleFactor = 0.5
         coins.translatesAutoresizingMaskIntoConstraints = false
         tile.addSubview(coins)
-        let price = PaddingTag()
+        let price = PaddingTag(horizontalInsetDesign: 10)
         price.text = p.price
         price.font = DesignTokens.Font.semibold(26)
         price.textColor = DesignTokens.Color.textPrimary
         price.backgroundColor = DesignTokens.Color.accent
         price.textAlignment = .center
+        price.lineBreakMode = .byClipping
+        price.adjustsFontSizeToFitWidth = true
+        price.minimumScaleFactor = 0.75
+        price.setContentHuggingPriority(.required, for: .horizontal)
+        price.setContentCompressionResistancePriority(.required, for: .horizontal)
         price.layer.cornerRadius = 26.dp
         price.layer.masksToBounds = true
         price.translatesAutoresizingMaskIntoConstraints = false
@@ -197,9 +253,14 @@ final class RechargeViewController: UIViewController {
             coin.heightAnchor.constraint(equalToConstant: 90.dp),
             coins.topAnchor.constraint(equalTo: coin.bottomAnchor, constant: 14.dp),
             coins.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
+            coins.leadingAnchor.constraint(greaterThanOrEqualTo: tile.leadingAnchor, constant: 8.dp),
+            coins.trailingAnchor.constraint(lessThanOrEqualTo: tile.trailingAnchor, constant: -8.dp),
             price.topAnchor.constraint(equalTo: coins.bottomAnchor, constant: 14.dp),
             price.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
+            price.leadingAnchor.constraint(greaterThanOrEqualTo: tile.leadingAnchor, constant: 8.dp),
+            price.trailingAnchor.constraint(lessThanOrEqualTo: tile.trailingAnchor, constant: -8.dp),
             price.heightAnchor.constraint(equalToConstant: 52.dp),
+            price.bottomAnchor.constraint(lessThanOrEqualTo: tile.bottomAnchor, constant: -28.dp),
         ])
         tile.addAction(UIAction { [weak self] _ in
             guard let self else { return }
@@ -208,56 +269,6 @@ final class RechargeViewController: UIViewController {
             self.purchase(self.packages[index])
         }, for: .touchUpInside)
         return tile
-    }
-
-    private func makeButtonCard(_ package: Package, index: Int) -> UIControl {
-        let card = UIControl()
-        card.tag = index
-        card.backgroundColor = DesignTokens.Color.secondaryFill
-        card.layer.cornerRadius = 28.dp
-        card.layer.borderWidth = 3
-        card.layer.borderColor = UIColor.clear.cgColor
-
-        let coin = UIImageView(image: UIImage(named: "coin"))
-        coin.contentMode = .scaleAspectFit
-        coin.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(coin)
-
-        let coins = UILabel()
-        coins.text = "\(package.coins)"
-        coins.font = DesignTokens.Font.bold(36)
-        coins.textColor = DesignTokens.Color.textPrimary
-        coins.textAlignment = .center
-        coins.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(coins)
-
-        let price = PaddingTag()
-        price.text = package.price
-        price.font = DesignTokens.Font.semibold(24)
-        price.textColor = DesignTokens.Color.textPrimary
-        price.backgroundColor = DesignTokens.Color.accent
-        price.textAlignment = .center
-        price.layer.cornerRadius = 22.dp
-        price.layer.masksToBounds = true
-        price.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(price)
-
-        NSLayoutConstraint.activate([
-            coin.topAnchor.constraint(equalTo: card.topAnchor, constant: 24.dp),
-            coin.centerXAnchor.constraint(equalTo: card.centerXAnchor),
-            coin.widthAnchor.constraint(equalToConstant: 72.dp),
-            coin.heightAnchor.constraint(equalToConstant: 72.dp),
-            coins.topAnchor.constraint(equalTo: coin.bottomAnchor, constant: 10.dp),
-            coins.centerXAnchor.constraint(equalTo: card.centerXAnchor),
-            price.topAnchor.constraint(equalTo: coins.bottomAnchor, constant: 10.dp),
-            price.centerXAnchor.constraint(equalTo: card.centerXAnchor),
-            price.heightAnchor.constraint(equalToConstant: 44.dp),
-        ])
-
-        card.addAction(UIAction { [weak self] _ in
-            self?.purchase(package)
-        }, for: .touchUpInside)
-        return card
     }
 
     private func updateSelection() {
@@ -269,8 +280,27 @@ final class RechargeViewController: UIViewController {
     }
 
     private func purchase(_ package: Package) {
-        AppSession.shared.topUp(package.coins)
-        Toast.show("Recharged \(package.coins) coins!", in: view)
-        navigationController?.popViewController(animated: true)
+        guard !isPurchasing else { return }
+
+        isPurchasing = true
+        view.isUserInteractionEnabled = false
+        Task { @MainActor in
+            defer {
+                isPurchasing = false
+                view.isUserInteractionEnabled = true
+            }
+            do {
+                let coins = try await StoreKitManager.shared.purchase(productID: package.productID)
+                refreshBalance()
+                Toast.show("Recharged \(coins) coins!", in: view)
+            } catch StoreKitManager.PurchaseError.userCancelled {
+                // System purchase sheet dismissed by user.
+            } catch {
+                let message = error.localizedDescription
+                if !message.isEmpty {
+                    Toast.show(message, in: view)
+                }
+            }
+        }
     }
 }

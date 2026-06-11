@@ -54,8 +54,6 @@ final class AppSession {
     /// Built-in test account with rich demo interactions (§6).
     static let testAccountEmail = "lgdz@qq.com"
     static let testAccountDisplayName = "Harper"
-    /// Legacy demo default before 2026-06-10 balance adjustment.
-    private static let legacyTestWalletDefault = 609
     static let testAccountWalletDefault = 50
 
     private let accountsKey = "registered.accounts"
@@ -185,14 +183,16 @@ final class AppSession {
     }
 
     /// Activate an account for the current process session.
+    /// Wallet restores persisted balance when available; otherwise defaults (new user 0, test account 50).
     func activate(_ account: Account) {
         current = account
         storage = AccountScopedStorage(accountID: account.id)
         let isTest = account.email.lowercased() == Self.testAccountEmail
-        let walletDefault = isTest ? Self.testAccountWalletDefault : 0
-        coins = storage?.int("wallet.coins", default: walletDefault) ?? walletDefault
-        if isTest && coins == Self.legacyTestWalletDefault {
-            coins = walletDefault
+        let defaultCoins = isTest ? Self.testAccountWalletDefault : 0
+        if storage?.contains("wallet.coins") == true {
+            coins = storage?.int("wallet.coins", default: defaultCoins) ?? defaultCoins
+        } else {
+            coins = defaultCoins
             storage?.set(coins, for: "wallet.coins")
         }
         blockedNames = storage?.stringArray("blocked.names") ?? []
@@ -263,6 +263,19 @@ final class AppSession {
         coins += amount
         storage?.set(coins, for: "wallet.coins")
         notifyBalanceChanged()
+    }
+
+    /// Credits coins from a verified StoreKit transaction. Returns false when already fulfilled.
+    @discardableResult
+    func creditPurchase(coins amount: Int, transactionID: UInt64) -> Bool {
+        guard amount > 0 else { return false }
+        var fulfilled = storage?.stringArray("wallet.fulfilledTransactions") ?? []
+        let token = String(transactionID)
+        guard !fulfilled.contains(token) else { return false }
+        fulfilled.append(token)
+        storage?.set(fulfilled, for: "wallet.fulfilledTransactions")
+        topUp(amount)
+        return true
     }
 
     private func notifyBalanceChanged() {

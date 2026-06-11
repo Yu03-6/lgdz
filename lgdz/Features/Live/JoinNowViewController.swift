@@ -233,7 +233,19 @@ final class JoinNowViewController: UIViewController {
 
 /// A label with symmetric horizontal padding (for tag pills).
 final class PaddingTag: UILabel {
-    private var horizontalInset: CGFloat { 32.dp }
+    private let horizontalInsetDesign: CGFloat
+
+    init(horizontalInsetDesign: CGFloat = 32) {
+        self.horizontalInsetDesign = horizontalInsetDesign
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private var horizontalInset: CGFloat { horizontalInsetDesign.dp }
 
     override var intrinsicContentSize: CGSize {
         let s = super.intrinsicContentSize
