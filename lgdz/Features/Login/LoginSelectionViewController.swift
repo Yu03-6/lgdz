@@ -22,8 +22,8 @@ final class LoginSelectionViewController: UIViewController {
         TPChrome.addBackground(to: view)
         hideSystemNavBar()
         setupBackground()
-        setupButtons()
         setupFooter()
+        setupButtons()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -58,9 +58,15 @@ final class LoginSelectionViewController: UIViewController {
         signInButton.addTarget(self, action: #selector(tapSignIn), for: .touchUpInside)
         createButton.addTarget(self, action: #selector(tapCreate), for: .touchUpInside)
 
-        // Apple button top at design y=952.
+        // Apple button top at design y=952; compress upward on shorter viewports
+        // (e.g. iPad iPhone-compatibility window) so buttons stay above the footer.
+        let designAppleTop = appleButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 952.dp)
+        designAppleTop.priority = UILayoutPriority(750)
+
         NSLayoutConstraint.activate([
-            appleButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 952.dp),
+            designAppleTop,
+            appleButton.topAnchor.constraint(
+                greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor, constant: 8.dp),
             appleButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
             appleButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
             appleButton.heightAnchor.constraint(equalToConstant: height),
@@ -74,6 +80,8 @@ final class LoginSelectionViewController: UIViewController {
             createButton.leadingAnchor.constraint(equalTo: appleButton.leadingAnchor),
             createButton.trailingAnchor.constraint(equalTo: appleButton.trailingAnchor),
             createButton.heightAnchor.constraint(equalToConstant: height),
+            createButton.bottomAnchor.constraint(
+                lessThanOrEqualTo: footer.topAnchor, constant: -spacing),
         ])
     }
 
@@ -122,6 +130,7 @@ final class LoginSelectionViewController: UIViewController {
             footer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 70.dp),
             footer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -70.dp),
             footer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24.dp),
+            footer.heightAnchor.constraint(greaterThanOrEqualToConstant: 48.dp),
         ])
     }
 

@@ -1,11 +1,11 @@
 import UIKit
 
-/// Centers app content in a phone-width column on iPad so Auto Layout constraints
-/// that use `DesignMetrics` match the visible width.
+/// Centers phone-layout content in a capped-width column when running on iPad.
+/// Prevents `.dp` scaling from using the full tablet window width while the UI
+/// is rendered in a narrower compatibility column.
 final class PhoneLayoutHostViewController: UIViewController {
 
     private let content: UIViewController
-    private let contentContainer = UIView()
 
     init(content: UIViewController) {
         self.content = content
@@ -18,35 +18,30 @@ final class PhoneLayoutHostViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = DesignTokens.Color.background
 
-        contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.backgroundColor = .clear
-        view.addSubview(contentContainer)
-
         addChild(content)
+
+        let column = UIView()
+        column.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(column)
+
         content.view.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(content.view)
+        column.addSubview(content.view)
         content.didMove(toParent: self)
 
-        let width = contentContainer.widthAnchor.constraint(equalTo: view.widthAnchor)
-        width.priority = .defaultHigh
-        let maxWidth = contentContainer.widthAnchor.constraint(
-            lessThanOrEqualToConstant: DesignMetrics.padMaxContentWidth)
+        let matchWindowWidth = column.widthAnchor.constraint(equalTo: view.widthAnchor)
+        matchWindowWidth.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
-            contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            width,
-            maxWidth,
+            column.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            column.topAnchor.constraint(equalTo: view.topAnchor),
+            column.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            matchWindowWidth,
+            column.widthAnchor.constraint(lessThanOrEqualToConstant: DesignMetrics.padMaxContentWidth),
 
-            content.view.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            content.view.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
-            content.view.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            content.view.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            content.view.topAnchor.constraint(equalTo: column.topAnchor),
+            content.view.leadingAnchor.constraint(equalTo: column.leadingAnchor),
+            content.view.trailingAnchor.constraint(equalTo: column.trailingAnchor),
+            content.view.bottomAnchor.constraint(equalTo: column.bottomAnchor),
         ])
     }
-
-    override var childForStatusBarStyle: UIViewController? { content }
-    override var childForStatusBarHidden: UIViewController? { content }
-    override var childForHomeIndicatorAutoHidden: UIViewController? { content }
 }

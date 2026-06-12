@@ -31,6 +31,16 @@ final class EmailLoginViewController: UIViewController {
         hideSystemNavBar()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Disable scrolling when the form fits — keeps Sign in visible without swiping.
+        let fits = scroll.contentSize.height <= scroll.bounds.height + 1
+        scroll.isScrollEnabled = !fits
+        if fits {
+            scroll.contentOffset = .zero
+        }
+    }
+
     private func setupBackground() {
         bg.image = UIImage(named: "login_bg")
         bg.contentMode = .scaleAspectFill
@@ -69,24 +79,37 @@ final class EmailLoginViewController: UIViewController {
 
     private func setupFields() {
         let margin = 60.dp
+        let fieldSpacing = 55.dp
+        // Design gap from password bottom (y≈1249) to sign-in top (y=1358).
+        let signInGap = 109.dp
+
         [emailField, passwordField, signInButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             content.addSubview($0)
         }
         signInButton.addTarget(self, action: #selector(tapSignIn), for: .touchUpInside)
 
+        // Email group top ≈ design y 830; allow upward shift on shorter viewports (iPad).
+        let designEmailTop = emailField.topAnchor.constraint(equalTo: content.topAnchor, constant: 830.dp)
+        designEmailTop.priority = UILayoutPriority(750)
+
+        let designSignInGap = signInButton.topAnchor.constraint(
+            equalTo: passwordField.bottomAnchor, constant: signInGap)
+        designSignInGap.priority = UILayoutPriority(750)
+
         NSLayoutConstraint.activate([
-            // Email field box top ≈ design y 898 → group top ≈ 830.
-            emailField.topAnchor.constraint(equalTo: content.topAnchor, constant: 830.dp),
+            designEmailTop,
+            emailField.topAnchor.constraint(greaterThanOrEqualTo: content.topAnchor, constant: 12.dp),
             emailField.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
             emailField.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
 
-            passwordField.topAnchor.constraint(equalTo: emailField.bottomAnchor, constant: 55.dp),
+            passwordField.topAnchor.constraint(equalTo: emailField.bottomAnchor, constant: fieldSpacing),
             passwordField.leadingAnchor.constraint(equalTo: emailField.leadingAnchor),
             passwordField.trailingAnchor.constraint(equalTo: emailField.trailingAnchor),
 
-            // Sign in button band design y 1358–1478.
-            signInButton.topAnchor.constraint(equalTo: content.topAnchor, constant: 1358.dp),
+            designSignInGap,
+            signInButton.topAnchor.constraint(
+                greaterThanOrEqualTo: passwordField.bottomAnchor, constant: 32.dp),
             signInButton.leadingAnchor.constraint(equalTo: emailField.leadingAnchor),
             signInButton.trailingAnchor.constraint(equalTo: emailField.trailingAnchor),
             signInButton.heightAnchor.constraint(equalToConstant: 120.dp),
