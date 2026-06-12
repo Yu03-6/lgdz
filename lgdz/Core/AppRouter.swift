@@ -10,19 +10,19 @@ final class AppRouter {
         // Cold start → login flow (§6: 冷启动必回登录页).
         let nav = UINavigationController(rootViewController: LoginSelectionViewController())
         nav.setNavigationBarHidden(true, animated: false)
-        return nav
+        return DesignMetrics.wrapForPadIfNeeded(nav)
     }
 
     func enterMainApp() {
         let tab = MainTabBarController()
-        transition(to: tab)
+        transition(to: DesignMetrics.wrapForPadIfNeeded(tab))
     }
 
     func logout() {
         AppSession.shared.signOut()
         let nav = UINavigationController(rootViewController: LoginSelectionViewController())
         nav.setNavigationBarHidden(true, animated: false)
-        transition(to: nav)
+        transition(to: DesignMetrics.wrapForPadIfNeeded(nav))
     }
 
     private func transition(to root: UIViewController) {
