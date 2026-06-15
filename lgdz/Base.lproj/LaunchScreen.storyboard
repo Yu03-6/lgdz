@@ -24,9 +24,9 @@
                         <color key="backgroundColor" red="0.99215686274509807" green="0.97647058823529409" blue="0.88235294117647056" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="launch-logo" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="logo-cx"/>
-                            <constraint firstItem="launch-logo" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="logo-cy"/>
-                            <constraint firstItem="launch-logo" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.1641025641025641" id="logo-cw"/>
-                            <constraint firstItem="launch-logo" firstAttribute="height" secondItem="launch-logo" secondAttribute="width" multiplier="1.213235294117647" id="logo-ar"/>
+                            <constraint firstItem="launch-logo" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="bottom" multiplier="0.3690758293838863" id="logo-cy"/>
+                            <constraint firstItem="launch-logo" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.28974358974358977" id="logo-cw"/>
+                            <constraint firstItem="launch-logo" firstAttribute="height" secondItem="launch-logo" secondAttribute="width" multiplier="1.163716814159292" id="logo-ar"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -36,6 +36,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="launch_logo" width="136" height="165"/>
+        <image name="launch_logo" width="226" height="263"/>
     </resources>
 </document>

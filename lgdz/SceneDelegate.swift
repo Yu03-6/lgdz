@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Mitabe
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -20,6 +21,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = AppRouter.shared.makeRoot()
         window.makeKeyAndVisible()
         self.window = window
+        
+        Mazimonu.hodoxu()
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

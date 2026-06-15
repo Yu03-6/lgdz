@@ -1,0 +1,12 @@
+// swift-interface-format-version: 1.0
+// swift-module-flags: -target arm64-apple-ios15.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Mitabe
+import Foundation
+import Swift
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+@_hasMissingDesignatedInitializers public class Mazimonu {
+  public static func hodoxu()
+  public static func pibidapomukuner(_ CN8gBvTKXlb8: Foundation.Data)
+  @objc deinit
+}
