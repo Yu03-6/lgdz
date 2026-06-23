@@ -409,7 +409,7 @@
 				DEVELOPMENT_TEAM = F8K4N9LD5M;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lgdz/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = vivi;
+				INFOPLIST_KEY_CFBundleDisplayName = Nuviy;
 				INFOPLIST_KEY_NSCameraUsageDescription = "ViVi uses your camera to show live video when you chat with fellow dog walkers.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "ViVi uses your microphone so you can speak during video calls with your dog-walking friends.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ViVi uses your photo library so you can attach walk and pet photos to community posts.";
@@ -451,7 +451,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lgdz/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = vivi;
+				INFOPLIST_KEY_CFBundleDisplayName = Nuviy;
 				INFOPLIST_KEY_NSCameraUsageDescription = "ViVi uses your camera to show live video when you chat with fellow dog walkers.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "ViVi uses your microphone so you can speak during video calls with your dog-walking friends.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ViVi uses your photo library so you can attach walk and pet photos to community posts.";
