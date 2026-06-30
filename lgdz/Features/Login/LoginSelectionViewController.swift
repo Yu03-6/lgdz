@@ -50,38 +50,39 @@ final class LoginSelectionViewController: UIViewController {
         let height = 112.dp
         let spacing = 40.dp
 
-        [appleButton, signInButton, createButton].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
+        let formArea = LoginPinnedFooterLayout.installFixedForm(
+            in: view,
+            below: view.safeAreaLayoutGuide.topAnchor,
+            footerView: footer,
+            gapAboveFooter: 16.dp)
+
+        let buttonStack = UIStackView(arrangedSubviews: [appleButton, signInButton, createButton])
+        buttonStack.axis = .vertical
+        buttonStack.spacing = spacing
+        buttonStack.distribution = .fill
+        buttonStack.translatesAutoresizingMaskIntoConstraints = false
+
+        let outerStack = UIStackView(arrangedSubviews: [
+            LoginPinnedFooterLayout.makeVerticalSpacer(),
+            buttonStack,
+        ])
+        outerStack.axis = .vertical
+        outerStack.translatesAutoresizingMaskIntoConstraints = false
+        formArea.addSubview(outerStack)
+
         appleButton.addTarget(self, action: #selector(tapApple), for: .touchUpInside)
         signInButton.addTarget(self, action: #selector(tapSignIn), for: .touchUpInside)
         createButton.addTarget(self, action: #selector(tapCreate), for: .touchUpInside)
 
-        // Apple button top at design y=952; compress upward on shorter viewports
-        // (e.g. iPad iPhone-compatibility window) so buttons stay above the footer.
-        let designAppleTop = appleButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 952.dp)
-        designAppleTop.priority = UILayoutPriority(750)
-
         NSLayoutConstraint.activate([
-            designAppleTop,
-            appleButton.topAnchor.constraint(
-                greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor, constant: 8.dp),
-            appleButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            appleButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            outerStack.topAnchor.constraint(equalTo: formArea.topAnchor),
+            outerStack.leadingAnchor.constraint(equalTo: formArea.leadingAnchor, constant: margin),
+            outerStack.trailingAnchor.constraint(equalTo: formArea.trailingAnchor, constant: -margin),
+            outerStack.bottomAnchor.constraint(equalTo: formArea.bottomAnchor, constant: -8.dp),
+
             appleButton.heightAnchor.constraint(equalToConstant: height),
-
-            signInButton.topAnchor.constraint(equalTo: appleButton.bottomAnchor, constant: spacing),
-            signInButton.leadingAnchor.constraint(equalTo: appleButton.leadingAnchor),
-            signInButton.trailingAnchor.constraint(equalTo: appleButton.trailingAnchor),
             signInButton.heightAnchor.constraint(equalToConstant: height),
-
-            createButton.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: spacing),
-            createButton.leadingAnchor.constraint(equalTo: appleButton.leadingAnchor),
-            createButton.trailingAnchor.constraint(equalTo: appleButton.trailingAnchor),
             createButton.heightAnchor.constraint(equalToConstant: height),
-            createButton.bottomAnchor.constraint(
-                lessThanOrEqualTo: footer.topAnchor, constant: -spacing),
         ])
     }
 
@@ -130,7 +131,6 @@ final class LoginSelectionViewController: UIViewController {
             footer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 70.dp),
             footer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -70.dp),
             footer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24.dp),
-            footer.heightAnchor.constraint(greaterThanOrEqualToConstant: 48.dp),
         ])
     }
 

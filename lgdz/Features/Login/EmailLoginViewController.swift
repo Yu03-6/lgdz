@@ -5,24 +5,22 @@ import UIKit
 final class EmailLoginViewController: UIViewController {
 
     private let bg = UIImageView()
-    private let content = UIView()
+    private let formContent = UIView()
     private let emailField = InputField(title: "Email", placeholder: "Your email address")
     private let passwordField = InputField(title: "Password", placeholder: "Your password", secure: true)
     private let signInButton = PillButton(style: .primary, title: "Sign in")
     private let footer = UILabel()
     private var keyboardAvoidance: KeyboardShiftAvoidance?
+    private var footerKeyboardAvoidance: KeyboardBottomBarAvoidance?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         TPChrome.addBackground(to: view)
         hideSystemNavBar()
         setupBackground()
-        setupContent()
-        setupFields()
         setupFooter()
+        setupFields()
         emailField.textField.keyboardType = .emailAddress
-        keyboardAvoidance = KeyboardShiftAvoidance()
-        keyboardAvoidance?.attach(hostView: view, contentView: content, actionButtons: [signInButton])
         KeyboardDismiss.installTapToDismiss(on: view, target: self, action: #selector(dismissKeyboard))
     }
 
@@ -45,52 +43,76 @@ final class EmailLoginViewController: UIViewController {
         ])
     }
 
-    private func setupContent() {
-        content.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(content)
-        NSLayoutConstraint.activate([
-            content.topAnchor.constraint(equalTo: view.topAnchor),
-            content.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-    }
-
     private func setupFields() {
         let margin = 60.dp
         let fieldSpacing = 55.dp
         let signInGap = 109.dp
+        let minGap: CGFloat = 24.dp
+
+        let formArea = LoginPinnedFooterLayout.installFixedForm(
+            in: view,
+            below: view.safeAreaLayoutGuide.topAnchor,
+            footerView: footer,
+            gapAboveFooter: 16.dp)
+
+        formContent.translatesAutoresizingMaskIntoConstraints = false
+        formArea.addSubview(formContent)
 
         [emailField, passwordField, signInButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
-            content.addSubview($0)
+            formContent.addSubview($0)
         }
         signInButton.addTarget(self, action: #selector(tapSignIn), for: .touchUpInside)
 
-        let designEmailTop = emailField.topAnchor.constraint(equalTo: content.topAnchor, constant: 830.dp)
-        designEmailTop.priority = UILayoutPriority(750)
+        let spacer = LoginPinnedFooterLayout.makeVerticalSpacer()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        formContent.addSubview(spacer)
+
+        let designFieldGap = passwordField.topAnchor.constraint(
+            equalTo: emailField.bottomAnchor, constant: fieldSpacing)
+        designFieldGap.priority = UILayoutPriority(750)
 
         let designSignInGap = signInButton.topAnchor.constraint(
             equalTo: passwordField.bottomAnchor, constant: signInGap)
         designSignInGap.priority = UILayoutPriority(750)
 
         NSLayoutConstraint.activate([
-            designEmailTop,
-            emailField.topAnchor.constraint(greaterThanOrEqualTo: content.safeAreaLayoutGuide.topAnchor, constant: 12.dp),
-            emailField.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
-            emailField.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
+            formContent.topAnchor.constraint(equalTo: formArea.topAnchor),
+            formContent.leadingAnchor.constraint(equalTo: formArea.leadingAnchor),
+            formContent.trailingAnchor.constraint(equalTo: formArea.trailingAnchor),
+            formContent.bottomAnchor.constraint(equalTo: formArea.bottomAnchor),
 
-            passwordField.topAnchor.constraint(equalTo: emailField.bottomAnchor, constant: fieldSpacing),
-            passwordField.leadingAnchor.constraint(equalTo: emailField.leadingAnchor),
-            passwordField.trailingAnchor.constraint(equalTo: emailField.trailingAnchor),
+            signInButton.leadingAnchor.constraint(equalTo: formContent.leadingAnchor, constant: margin),
+            signInButton.trailingAnchor.constraint(equalTo: formContent.trailingAnchor, constant: -margin),
+            signInButton.heightAnchor.constraint(equalToConstant: 120.dp),
+            signInButton.bottomAnchor.constraint(equalTo: formContent.bottomAnchor, constant: -8.dp),
 
             designSignInGap,
             signInButton.topAnchor.constraint(
-                greaterThanOrEqualTo: passwordField.bottomAnchor, constant: 32.dp),
-            signInButton.leadingAnchor.constraint(equalTo: emailField.leadingAnchor),
-            signInButton.trailingAnchor.constraint(equalTo: emailField.trailingAnchor),
-            signInButton.heightAnchor.constraint(equalToConstant: 120.dp),
+                greaterThanOrEqualTo: passwordField.bottomAnchor, constant: minGap),
+
+            passwordField.leadingAnchor.constraint(equalTo: signInButton.leadingAnchor),
+            passwordField.trailingAnchor.constraint(equalTo: signInButton.trailingAnchor),
+
+            designFieldGap,
+            passwordField.topAnchor.constraint(
+                greaterThanOrEqualTo: emailField.bottomAnchor, constant: minGap),
+
+            emailField.leadingAnchor.constraint(equalTo: signInButton.leadingAnchor),
+            emailField.trailingAnchor.constraint(equalTo: signInButton.trailingAnchor),
+            emailField.topAnchor.constraint(equalTo: spacer.bottomAnchor),
+
+            spacer.topAnchor.constraint(equalTo: formContent.topAnchor),
+            spacer.leadingAnchor.constraint(equalTo: formContent.leadingAnchor),
+            spacer.trailingAnchor.constraint(equalTo: formContent.trailingAnchor),
+            spacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
         ])
+
+        keyboardAvoidance = KeyboardShiftAvoidance()
+        keyboardAvoidance?.attach(
+            hostView: view,
+            contentView: formContent,
+            actionButtons: [signInButton])
     }
 
     private func setupFooter() {
@@ -106,15 +128,21 @@ final class EmailLoginViewController: UIViewController {
         s.append(NSAttributedString(string: "Create Account", attributes: link))
         footer.attributedText = s
         footer.textAlignment = .center
+        footer.numberOfLines = 0
         footer.isUserInteractionEnabled = true
         footer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapCreate)))
         footer.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(footer)
+        view.addSubview(footer)
+        let footerBottom = footer.bottomAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40.dp)
         NSLayoutConstraint.activate([
-            footer.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-            footer.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: 36.dp),
-            footer.bottomAnchor.constraint(lessThanOrEqualTo: content.safeAreaLayoutGuide.bottomAnchor, constant: -40.dp),
+            footer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 60.dp),
+            footer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -60.dp),
+            footerBottom,
         ])
+        footerKeyboardAvoidance = KeyboardBottomBarAvoidance()
+        footerKeyboardAvoidance?.start(
+            hostView: view, bottomConstraint: footerBottom, restingConstant: -40.dp)
     }
 
     @objc private func dismissKeyboard() {
