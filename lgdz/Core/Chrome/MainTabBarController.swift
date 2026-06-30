@@ -53,6 +53,9 @@ final class MainTabBarController: UITabBarController {
         NotificationCenter.default.addObserver(
             self, selector: #selector(refreshChatBadge),
             name: .chatUnreadDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshTabTitles),
+            name: .languageDidChange, object: nil)
     }
 
     deinit {
@@ -61,6 +64,10 @@ final class MainTabBarController: UITabBarController {
 
     @objc private func refreshChatBadge() {
         setChatBadge(DemoContent.totalUnread)
+    }
+
+    @objc private func refreshTabTitles() {
+        floatingBar.updateTitles([L10n.tabHome, L10n.tabFeed, L10n.tabChat, L10n.tabMe])
     }
 
     /// Expose bottom inset so tab content can avoid the floating bar.
@@ -203,6 +210,12 @@ final class FloatingTabBar: UIView {
         for (i, b) in buttons.enumerated() { b.setSelected(i == index) }
     }
 
+    func updateTitles(_ titles: [String]) {
+        for (index, title) in titles.enumerated() where index < buttons.count {
+            buttons[index].setTitle(title)
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         layer.cornerRadius = bounds.height / 2
@@ -260,6 +273,10 @@ private final class TabButton: UIControl {
     func setSelected(_ selected: Bool) {
         iconView.image = UIImage(named: selected ? iconSel : icon)
         label.font = selected ? DesignTokens.Font.bold(22) : DesignTokens.Font.semibold(22)
+    }
+
+    func setTitle(_ title: String) {
+        label.text = title
     }
 
     func setBadge(_ count: Int) {

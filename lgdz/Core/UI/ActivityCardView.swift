@@ -16,6 +16,8 @@ final class ActivityCardView: UIView {
     private let isOwnPost: Bool
     private weak var followPill: TagPill?
     private weak var deleteButton: UIButton?
+    private weak var bodyLabel: UILabel?
+    private weak var timeLabel: UILabel?
 
     init(item: DemoContent.Activity) {
         self.item = item
@@ -32,6 +34,9 @@ final class ActivityCardView: UIView {
         NotificationCenter.default.addObserver(
             self, selector: #selector(likeStateChanged(_:)),
             name: .likeStateDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(languageDidChange),
+            name: .languageDidChange, object: nil)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -57,11 +62,12 @@ final class ActivityCardView: UIView {
         addSubview(name)
 
         let time = UILabel()
-        time.text = item.time
+        time.text = DemoContent.displayTime(for: item)
         time.font = DesignTokens.Font.regular(28)
         time.textColor = DesignTokens.Color.textMuted
         time.translatesAutoresizingMaskIntoConstraints = false
         addSubview(time)
+        timeLabel = time
 
         let trailingAction: UIView
         if isOwnPost {
@@ -82,12 +88,13 @@ final class ActivityCardView: UIView {
         addSubview(trailingAction)
 
         let text = UILabel()
-        text.text = item.text
+        text.text = DemoContent.displayText(for: item)
         text.numberOfLines = 0
         text.font = DesignTokens.Font.medium(32)
         text.textColor = DesignTokens.Color.textPrimary
         text.translatesAutoresizingMaskIntoConstraints = false
         addSubview(text)
+        bodyLabel = text
 
         let hasPhoto = !item.image.isEmpty && PostImageStore.resolveImage(named: item.image) != nil
         let photo = UIImageView()
@@ -191,6 +198,12 @@ final class ActivityCardView: UIView {
         followPill?.setOn(following, animated: true)
     }
 
+    @objc private func languageDidChange() {
+        bodyLabel?.text = DemoContent.displayText(for: item)
+        timeLabel?.text = DemoContent.displayTime(for: item)
+        deleteButton?.setTitle(L10n.deletePost, for: .normal)
+    }
+
     @objc private func likeStateChanged(_ note: Notification) {
         guard let changedId = note.userInfo?[LikePostInfoKey.postId] as? String,
               changedId == postId else { return }
@@ -241,7 +254,7 @@ final class ActivityCardView: UIView {
 
     private func makeDeleteButton() -> UIButton {
         let btn = UIButton(type: .system)
-        btn.setTitle(" Delete", for: .normal)
+        btn.setTitle(L10n.deletePost, for: .normal)
         btn.titleLabel?.font = DesignTokens.Font.semibold(30)
         btn.setTitleColor(DesignTokens.Color.danger, for: .normal)
         btn.backgroundColor = DesignTokens.Color.secondaryFill

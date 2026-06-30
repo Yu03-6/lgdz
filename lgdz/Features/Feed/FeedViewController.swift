@@ -4,9 +4,9 @@ import UIKit
 /// a scrolling list of activity cards, and a floating "+" compose FAB.
 final class FeedViewController: UIViewController {
 
-    private let tabs = ["Recommend", "Followed"]
     private var selectedTab = 0
     private let segment = UIStackView()
+    private var tabButtons: [PillButton] = []
     private let scroll = UIScrollView()
     private let list = UIStackView()
     private let fab = UIButton(type: .system)
@@ -30,6 +30,9 @@ final class FeedViewController: UIViewController {
         NotificationCenter.default.addObserver(
             self, selector: #selector(reloadFeed),
             name: .blockStateDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshLocalizedUI),
+            name: .languageDidChange, object: nil)
     }
 
     deinit {
@@ -47,7 +50,19 @@ final class FeedViewController: UIViewController {
         segment.spacing = 20.dp
         segment.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(segment)
-        for (i, t) in tabs.enumerated() {
+        refreshTabButtons()
+
+        NSLayoutConstraint.activate([
+            segment.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20.dp),
+            segment.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32.dp),
+        ])
+    }
+
+    private func refreshTabButtons() {
+        tabButtons.forEach { $0.removeFromSuperview() }
+        tabButtons.removeAll()
+        let titles = [L10n.feedRecommend, L10n.feedFollowed]
+        for (i, t) in titles.enumerated() {
             let b = PillButton(style: .secondary, title: t)
             b.designCornerRadius = 36
             b.tag = i
@@ -56,17 +71,18 @@ final class FeedViewController: UIViewController {
             b.addTarget(self, action: #selector(selectTab(_:)), for: .touchUpInside)
             segment.addArrangedSubview(b)
             b.heightAnchor.constraint(equalToConstant: 92.dp).isActive = true
+            tabButtons.append(b)
         }
         applyTabStyles()
+    }
 
-        NSLayoutConstraint.activate([
-            segment.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20.dp),
-            segment.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32.dp),
-        ])
+    @objc private func refreshLocalizedUI() {
+        refreshTabButtons()
+        reloadFeed()
     }
 
     private func applyTabStyles() {
-        for case let b as PillButton in segment.arrangedSubviews {
+        for b in tabButtons {
             let on = b.tag == selectedTab
             b.backgroundColor = on ? DesignTokens.Color.textPrimary : DesignTokens.Color.secondaryFill
             b.setTitleColor(on ? .white : DesignTokens.Color.textPrimary, for: .normal)
@@ -107,8 +123,8 @@ final class FeedViewController: UIViewController {
             : DemoContent.followedFeedPosts
         if posts.isEmpty, selectedTab == 1 {
             let empty = EmptyStateView(
-                title: "No followed posts yet",
-                subtitle: "Follow someone in Recommend\nto see their updates here.")
+                title: L10n.feedEmptyTitle,
+                subtitle: L10n.feedEmptySubtitle)
             list.addArrangedSubview(empty)
             return
         }

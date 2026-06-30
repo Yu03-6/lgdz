@@ -6,6 +6,10 @@ import UIKit
 /// success).
 final class PublishViewController: UIViewController {
 
+    private let scroll = UIScrollView()
+    private let formContent = UIView()
+    private var keyboardAvoidance: KeyboardFormAvoidance?
+
     private let titleField = UITextField()
     private let contentView = UITextView()
     private let contentPlaceholder = UILabel()
@@ -34,14 +38,23 @@ final class PublishViewController: UIViewController {
         header.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(header)
 
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.keyboardDismissMode = .interactive
+        scroll.showsVerticalScrollIndicator = false
+        scroll.alwaysBounceVertical = true
+        view.addSubview(scroll)
+
+        formContent.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(formContent)
+
         let titleLabel = sectionLabel("Title")
-        view.addSubview(titleLabel)
+        formContent.addSubview(titleLabel)
 
         let titleBox = UIView()
         titleBox.backgroundColor = DesignTokens.Color.fieldFill
         titleBox.layer.cornerRadius = 28.dp
         titleBox.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(titleBox)
+        formContent.addSubview(titleBox)
         titleField.placeholder = "Give your post a name."
         titleField.font = DesignTokens.Font.regular(30)
         titleField.textColor = DesignTokens.Color.textPrimary
@@ -49,13 +62,13 @@ final class PublishViewController: UIViewController {
         titleBox.addSubview(titleField)
 
         let contentLabel = sectionLabel("Content")
-        view.addSubview(contentLabel)
+        formContent.addSubview(contentLabel)
 
         let contentBox = UIView()
         contentBox.backgroundColor = DesignTokens.Color.fieldFill
         contentBox.layer.cornerRadius = 28.dp
         contentBox.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(contentBox)
+        formContent.addSubview(contentBox)
 
         contentView.backgroundColor = .clear
         contentView.font = DesignTokens.Font.regular(30)
@@ -84,7 +97,7 @@ final class PublishViewController: UIViewController {
         post.designCornerRadius = 36
         post.addTarget(self, action: #selector(tapPost), for: .touchUpInside)
         post.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(post)
+        formContent.addSubview(post)
 
         NSLayoutConstraint.activate([
             header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -92,12 +105,23 @@ final class PublishViewController: UIViewController {
             header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             header.heightAnchor.constraint(equalToConstant: NavHeader.designHeight.dp),
 
-            titleLabel.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 40.dp),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            scroll.topAnchor.constraint(equalTo: header.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            formContent.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
+            formContent.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
+            formContent.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
+            formContent.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+            formContent.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: formContent.topAnchor, constant: 40.dp),
+            titleLabel.leadingAnchor.constraint(equalTo: formContent.leadingAnchor, constant: margin),
 
             titleBox.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24.dp),
-            titleBox.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            titleBox.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            titleBox.leadingAnchor.constraint(equalTo: formContent.leadingAnchor, constant: margin),
+            titleBox.trailingAnchor.constraint(equalTo: formContent.trailingAnchor, constant: -margin),
             titleBox.heightAnchor.constraint(equalToConstant: 118.dp),
             titleField.leadingAnchor.constraint(equalTo: titleBox.leadingAnchor, constant: 36.dp),
             titleField.trailingAnchor.constraint(equalTo: titleBox.trailingAnchor, constant: -36.dp),
@@ -125,11 +149,15 @@ final class PublishViewController: UIViewController {
             addr.trailingAnchor.constraint(equalTo: contentBox.trailingAnchor, constant: -32.dp),
             addr.topAnchor.constraint(equalTo: mediaRow.bottomAnchor, constant: 36.dp),
 
-            post.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            post.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            post.leadingAnchor.constraint(equalTo: formContent.leadingAnchor, constant: margin),
+            post.trailingAnchor.constraint(equalTo: formContent.trailingAnchor, constant: -margin),
             post.heightAnchor.constraint(equalToConstant: 120.dp),
             post.topAnchor.constraint(equalTo: contentBox.bottomAnchor, constant: 60.dp),
+            post.bottomAnchor.constraint(equalTo: formContent.bottomAnchor, constant: -48.dp),
         ])
+
+        keyboardAvoidance = KeyboardFormAvoidance()
+        keyboardAvoidance?.attach(scrollView: scroll, hostView: view, baseBottomInset: 40.dp)
     }
 
     private func sectionLabel(_ text: String) -> UILabel {
@@ -259,7 +287,7 @@ final class PublishViewController: UIViewController {
         }
         let popup = ReminderPopupController(
             title: "Unlock Release",
-            bodyParts: [("This feature requires ", false), ("\(postCost)", true), (" coins to unlock.", false)],
+            bodyParts: [("This feature requires ", false), ("\(postCost)", true), (" gold coins to unlock.", false)],
             buttonTitle: "Unlock",
             secondaryTitle: "Close",
             onSecondary: nil,

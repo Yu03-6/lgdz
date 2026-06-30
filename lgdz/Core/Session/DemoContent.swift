@@ -70,25 +70,25 @@ enum DemoContent {
 
     static let feedUsers: [FeedUser] = [
         FeedUser(id: "u_emma", avatar: "avatar_a", name: "Emma", bio: "Golden Retriever mom · sunrise walks",
-                 coverImage: "avatar_a", friends: 23, followed: 128, fans: 56),
+                 coverImage: "profile_bg_emma", friends: 23, followed: 128, fans: 56),
         FeedUser(id: "u_james", avatar: "avatar_b", name: "James", bio: "Husky trainer · early riser",
-                 coverImage: "avatar_b", friends: 18, followed: 94, fans: 41),
+                 coverImage: "profile_bg_james", friends: 18, followed: 94, fans: 41),
         FeedUser(id: "u_sophie", avatar: "avatar_poster", name: "Sophie", bio: "Love long walks 🐕",
-                 coverImage: "avatar_poster", friends: 31, followed: 210, fans: 88),
+                 coverImage: "profile_bg_sophie", friends: 31, followed: 210, fans: 88),
         FeedUser(id: "u_max", avatar: "avatar_c", name: "Max", bio: "Corgi dad · short legs, big heart",
-                 coverImage: "avatar_c", friends: 15, followed: 76, fans: 33),
+                 coverImage: "profile_bg_max", friends: 15, followed: 76, fans: 33),
         FeedUser(id: "u_lily", avatar: "avatar_user", name: "Lily", bio: "Weekend park walker",
-                 coverImage: "avatar_user", friends: 27, followed: 142, fans: 61),
+                 coverImage: "profile_bg_lily", friends: 27, followed: 142, fans: 61),
         FeedUser(id: "u_william", avatar: "feed_post_01", name: "William", bio: "Shiba Inu enthusiast",
-                 coverImage: "feed_post_01", friends: 12, followed: 58, fans: 29),
+                 coverImage: "profile_bg_william", friends: 12, followed: 58, fans: 29),
         FeedUser(id: "u_olivia", avatar: "feed_post_02", name: "Olivia", bio: "Rescue dog advocate",
-                 coverImage: "feed_post_02", friends: 35, followed: 186, fans: 72),
+                 coverImage: "profile_bg_olivia", friends: 35, followed: 186, fans: 72),
         FeedUser(id: "u_leo", avatar: "feed_post_03", name: "Leo", bio: "Night owl dog walker",
-                 coverImage: "feed_post_03", friends: 9, followed: 44, fans: 18),
+                 coverImage: "profile_bg_leo", friends: 9, followed: 44, fans: 18),
         FeedUser(id: "u_grace", avatar: "feed_post_04", name: "Grace", bio: "Puppy socializer",
-                 coverImage: "feed_post_04", friends: 41, followed: 203, fans: 95),
+                 coverImage: "profile_bg_grace", friends: 41, followed: 203, fans: 95),
         FeedUser(id: "u_noah", avatar: "feed_post_05", name: "Noah", bio: "Trail hikes with Luna",
-                 coverImage: "feed_post_05", friends: 20, followed: 112, fans: 47),
+                 coverImage: "profile_bg_noah", friends: 20, followed: 112, fans: 47),
     ]
 
     static let feedPosts: [Activity] = [
@@ -237,6 +237,7 @@ enum DemoContent {
         } else {
             userPublishedPosts = loadStoredUserPosts() ?? []
         }
+        DogWalkingStore.seedDefaultDogProfileForCurrentAccountIfNeeded()
     }
 
     static func clearSessionContent() {
@@ -483,7 +484,14 @@ enum DemoContent {
     }
 
     static func posts(for userId: String) -> [Activity] {
-        feedPosts.filter { $0.userId == userId }
+        var combined = feedPosts.filter { $0.userId == userId }
+        if userId == currentUserId {
+            let existing = Set(combined.map(\.id))
+            for post in userPublishedPosts where !existing.contains(post.id) {
+                combined.insert(post, at: 0)
+            }
+        }
+        return visiblePosts(combined)
     }
 
     static func comments(for postId: String) -> [PostComment] {

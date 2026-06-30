@@ -192,20 +192,20 @@ final class AIChatViewController: UIViewController {
 
     private func handleKeyboard(_ note: Notification) {
         guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let overlap = max(0, view.bounds.height - frame.origin.y)
+        let overlap = KeyboardMetrics.overlap(in: view, keyboardEndFrame: frame)
         let keyboardVisible = overlap > 0
         pageBottom.constant = keyboardVisible ? -overlap : 0
         inputBottom.constant = keyboardVisible
             ? -10.dp
             : -(10.dp + view.safeAreaInsets.bottom)
-        animateLayout(note)
+        KeyboardMetrics.animate(with: note) {
+            self.view.layoutIfNeeded()
+        }
         scrollToBottom()
     }
 
     private func animateLayout(_ note: Notification) {
-        let duration = (note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
-        let curve = (note.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt) ?? 7
-        UIView.animate(withDuration: duration, delay: 0, options: UIView.AnimationOptions(rawValue: curve << 16)) {
+        KeyboardMetrics.animate(with: note) {
             self.view.layoutIfNeeded()
         }
     }

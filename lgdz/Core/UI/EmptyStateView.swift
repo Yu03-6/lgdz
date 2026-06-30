@@ -4,6 +4,9 @@ import UIKit
 /// bold title, muted subtitle. Centered in its container.
 final class EmptyStateView: UIView {
 
+    private let titleLabel = UILabel()
+    private let subtitleLabel = UILabel()
+
     init(title: String = "Empty here",
          subtitle: String = "Go explore more interesting\ncontent!") {
         super.init(frame: .zero)
@@ -12,14 +15,12 @@ final class EmptyStateView: UIView {
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
 
-        let titleLabel = UILabel()
         titleLabel.text = title
         titleLabel.font = DesignTokens.Font.bold(40)
         titleLabel.textColor = DesignTokens.Color.textPrimary
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let subtitleLabel = UILabel()
         subtitleLabel.text = subtitle
         subtitleLabel.numberOfLines = 0
         subtitleLabel.font = DesignTokens.Font.regular(26)
@@ -46,6 +47,11 @@ final class EmptyStateView: UIView {
             subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
             subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
+    }
+
+    func update(title: String, subtitle: String) {
+        titleLabel.text = title
+        subtitleLabel.text = subtitle
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

@@ -8,22 +8,28 @@ final class MeViewController: UIViewController {
     private let content = UIView()
     private let postsStack = UIStackView()
     private weak var balanceLabel: UILabel?
+    private weak var balanceCaptionLabel: UILabel?
+    private weak var rechargeButton: PillButton?
     private weak var emptyPostsView: EmptyStateView?
     private weak var avatarView: CircleImageView?
     private weak var nameLabel: UILabel?
     private weak var bioLabel: UILabel?
+    private weak var languageSwitcher: LanguageSwitcherView?
+    private var languageMenuDismissInstaller: LanguageMenuDismissInstaller?
+    private weak var postHeader: SectionHeader?
     private var statValueLabels: [UILabel] = []
-    private weak var settingsButton: UIButton?
+    private var statTitleLabels: [UILabel] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
         TPChrome.addBackground(to: view)
         hideSystemNavBar()
         setupPageBackground()
-        setupSettingsButton()
         build()
-        if let settingsButton {
-            view.bringSubviewToFront(settingsButton)
+        languageSwitcher?.overlayHost = view
+        if let languageSwitcher {
+            languageMenuDismissInstaller = LanguageMenuDismissInstaller()
+            languageMenuDismissInstaller?.install(on: view, switcher: languageSwitcher)
         }
         NotificationCenter.default.addObserver(
             self, selector: #selector(refreshBalance),
@@ -43,6 +49,9 @@ final class MeViewController: UIViewController {
         NotificationCenter.default.addObserver(
             self, selector: #selector(refreshProfile),
             name: .accountDidActivate, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshLocalizedUI),
+            name: .languageDidChange, object: nil)
     }
 
     deinit {
@@ -63,18 +72,24 @@ final class MeViewController: UIViewController {
         ])
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        languageSwitcher?.dismissMenu()
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         hideSystemNavBar()
         refreshBalance()
         refreshProfile()
+        refreshLocalizedUI()
         reloadPosts()
     }
 
     @objc private func refreshProfile() {
         let acct = AppSession.shared.current
         nameLabel?.text = acct?.displayName ?? "Me"
-        bioLabel?.text = acct?.bio ?? "No introduction yet~"
+        bioLabel?.text = acct?.bio?.isEmpty == false ? acct?.bio : L10n.meNoIntro
         avatarView?.applyAccountAvatar(asset: acct?.avatarAsset, displayName: acct?.displayName ?? "Me")
         let counts = [
             "\(DemoContent.friendsCount)",
@@ -90,22 +105,21 @@ final class MeViewController: UIViewController {
         balanceLabel?.text = "\(AppSession.shared.coins)"
     }
 
-    private func setupSettingsButton() {
-        let settings = UIButton(type: .custom)
-        settings.setImage(
-            UIImage(named: "me_settings_btn")?.withRenderingMode(.alwaysOriginal),
-            for: .normal)
-        settings.imageView?.contentMode = .scaleAspectFit
-        settings.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
-        settings.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(settings)
-        settingsButton = settings
-        NSLayoutConstraint.activate([
-            settings.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40.dp),
-            settings.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20.dp),
-            settings.widthAnchor.constraint(equalToConstant: 60.dp),
-            settings.heightAnchor.constraint(equalToConstant: 60.dp),
-        ])
+    @objc private func refreshLocalizedUI() {
+        languageSwitcher?.refreshSelection()
+        let statTitles = [L10n.meFriends, L10n.meFollowed, L10n.meFans]
+        for (i, label) in statTitleLabels.enumerated() where i < statTitles.count {
+            label.text = statTitles[i]
+        }
+        balanceCaptionLabel?.text = L10n.meBalance
+        rechargeButton?.setTitle(L10n.meRecharge, for: .normal)
+        postHeader?.setTitle(L10n.mePost)
+        postHeader?.refreshMoreTitle()
+        emptyPostsView?.update(title: L10n.meNoPosts, subtitle: L10n.meNoPostsSubtitle)
+        if (AppSession.shared.current?.bio ?? "").isEmpty {
+            bioLabel?.text = L10n.meNoIntro
+        }
+        reloadPosts()
     }
 
     private func build() {
@@ -126,7 +140,11 @@ final class MeViewController: UIViewController {
             content.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
             content.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
             content.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
+            content.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
         ])
+
+        let topBar = makeTopBar()
+        content.addSubview(topBar)
 
         let avatar = CircleImageView(asset: nil)
         avatar.applyAccountAvatar(
@@ -135,17 +153,17 @@ final class MeViewController: UIViewController {
         avatarView = avatar
         avatar.layer.borderWidth = 4
         avatar.layer.borderColor = UIColor.white.cgColor
-        avatar.isUserInteractionEnabled = true
-        avatar.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(openPosters)))
         avatar.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(avatar)
 
-        let edit = UIImageView(image: UIImage(systemName: "pencil"))
+        let edit = UIButton(type: .custom)
+        let editIcon = UIImage.SymbolConfiguration(pointSize: DesignMetrics.font(28), weight: .semibold)
+        edit.setImage(UIImage(systemName: "pencil", withConfiguration: editIcon), for: .normal)
         edit.tintColor = .white
-        edit.contentMode = .center
         edit.backgroundColor = DesignTokens.Color.accentYellow
         edit.layer.cornerRadius = 26.dp
         edit.layer.masksToBounds = true
+        edit.addTarget(self, action: #selector(openProfileEdit), for: .touchUpInside)
         edit.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(edit)
 
@@ -158,7 +176,7 @@ final class MeViewController: UIViewController {
         nameLabel = name
 
         let bio = UILabel()
-        bio.text = AppSession.shared.current?.bio ?? "No introduction yet~"
+        bio.text = AppSession.shared.current?.bio ?? L10n.meNoIntro
         bio.font = DesignTokens.Font.regular(32)
         bio.textColor = DesignTokens.Color.textPrimary
         bio.translatesAutoresizingMaskIntoConstraints = false
@@ -166,9 +184,9 @@ final class MeViewController: UIViewController {
         bioLabel = bio
 
         let stats = UIStackView(arrangedSubviews: [
-            statBlock("\(DemoContent.friendsCount)", "Friends", 0),
-            statBlock("\(DemoContent.followedCount)", "Followed", 1),
-            statBlock("\(DemoContent.fansCount)", "Fans", 2),
+            statBlock("\(DemoContent.friendsCount)", L10n.meFriends, 0),
+            statBlock("\(DemoContent.followedCount)", L10n.meFollowed, 1),
+            statBlock("\(DemoContent.fansCount)", L10n.meFans, 2),
         ])
         stats.axis = .horizontal
         stats.distribution = .fillEqually
@@ -178,23 +196,28 @@ final class MeViewController: UIViewController {
         let balance = makeBalanceCard()
         content.addSubview(balance)
 
-        let postHeader = SectionHeader(title: "Post", showMore: false)
+        let postHeader = SectionHeader(title: L10n.mePost, showMore: false)
         postHeader.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(postHeader)
+        self.postHeader = postHeader
 
         postsStack.axis = .vertical
         postsStack.spacing = 28.dp
         postsStack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(postsStack)
 
-        // New user → empty post area (§3); replaced by cards after publishing.
-        let empty = EmptyStateView(title: "No posts yet", subtitle: "Share your first dog-walking moment!")
+        let empty = EmptyStateView(title: L10n.meNoPosts, subtitle: L10n.meNoPostsSubtitle)
         empty.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(empty)
         emptyPostsView = empty
 
         let margin = 32.dp
         NSLayoutConstraint.activate([
+            topBar.topAnchor.constraint(equalTo: content.topAnchor, constant: 20.dp),
+            topBar.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
+            topBar.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
+            topBar.heightAnchor.constraint(equalToConstant: 60.dp),
+
             avatar.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
             avatar.topAnchor.constraint(equalTo: content.topAnchor, constant: 230.dp),
             avatar.widthAnchor.constraint(equalToConstant: 170.dp),
@@ -231,6 +254,38 @@ final class MeViewController: UIViewController {
             empty.centerXAnchor.constraint(equalTo: content.centerXAnchor),
             empty.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -160.dp),
         ])
+        content.bringSubviewToFront(edit)
+    }
+
+    private func makeTopBar() -> UIView {
+        let bar = UIView()
+        bar.translatesAutoresizingMaskIntoConstraints = false
+
+        let language = LanguageSwitcherView()
+        language.translatesAutoresizingMaskIntoConstraints = false
+        bar.addSubview(language)
+        languageSwitcher = language
+
+        let settings = UIButton(type: .custom)
+        settings.setImage(
+            UIImage(named: "me_settings_btn")?.withRenderingMode(.alwaysOriginal),
+            for: .normal)
+        settings.imageView?.contentMode = .scaleAspectFit
+        settings.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
+        settings.translatesAutoresizingMaskIntoConstraints = false
+        bar.addSubview(settings)
+
+        NSLayoutConstraint.activate([
+            language.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+            language.topAnchor.constraint(equalTo: bar.topAnchor),
+            language.bottomAnchor.constraint(equalTo: bar.bottomAnchor),
+
+            settings.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
+            settings.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+            settings.widthAnchor.constraint(equalToConstant: 60.dp),
+            settings.heightAnchor.constraint(equalToConstant: 60.dp),
+        ])
+        return bar
     }
 
     @objc private func reloadPosts() {
@@ -266,13 +321,14 @@ final class MeViewController: UIViewController {
         balanceLabel = amount
 
         let label = UILabel()
-        label.text = "Balance"
+        label.text = L10n.meBalance
         label.font = DesignTokens.Font.medium(32)
         label.textColor = UIColor(white: 1, alpha: 0.85)
         label.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(label)
+        balanceCaptionLabel = label
 
-        let recharge = PillButton(style: .primary, title: "Recharge")
+        let recharge = PillButton(style: .primary, title: L10n.meRecharge)
         recharge.backgroundColor = DesignTokens.Color.accentYellow
         recharge.setTitleColor(DesignTokens.Color.textPrimary, for: .normal)
         recharge.titleLabel?.font = DesignTokens.Font.semibold(30)
@@ -280,6 +336,7 @@ final class MeViewController: UIViewController {
         recharge.addTarget(self, action: #selector(openRecharge), for: .touchUpInside)
         recharge.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(recharge)
+        rechargeButton = recharge
 
         NSLayoutConstraint.activate([
             coin.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 40.dp),
@@ -313,6 +370,7 @@ final class MeViewController: UIViewController {
         t.textColor = DesignTokens.Color.textPrimary
         t.textAlignment = .center
         t.translatesAutoresizingMaskIntoConstraints = false
+        statTitleLabels.append(t)
         v.addSubview(num); v.addSubview(t)
         NSLayoutConstraint.activate([
             num.topAnchor.constraint(equalTo: v.topAnchor),
@@ -335,7 +393,7 @@ final class MeViewController: UIViewController {
         navigationController?.pushViewController(SettingsViewController(), animated: true)
     }
 
-    @objc private func openPosters() {
-        navigationController?.pushViewController(MyPostersViewController(), animated: true)
+    @objc private func openProfileEdit() {
+        navigationController?.pushViewController(ProfileEditViewController(), animated: true)
     }
 }

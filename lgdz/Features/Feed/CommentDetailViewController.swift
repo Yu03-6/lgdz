@@ -9,6 +9,7 @@ final class CommentDetailViewController: UIViewController {
     private let content = UIStackView()
     private let inputField = UITextField()
     private var inputBottom: NSLayoutConstraint!
+    private var keyboardAvoidance: KeyboardBottomBarAvoidance?
 
     private var comments: [DemoContent.PostComment]
 
@@ -30,8 +31,16 @@ final class CommentDetailViewController: UIViewController {
         NotificationCenter.default.addObserver(
             self, selector: #selector(postDeleted(_:)),
             name: .userPostDidDelete, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardChange(_:)),
-                                               name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        keyboardAvoidance = KeyboardBottomBarAvoidance()
+        keyboardAvoidance?.start(hostView: view, bottomConstraint: inputBottom, restingConstant: -10.dp)
+        keyboardAvoidance?.onChange = { [weak self] in
+            guard let self else { return }
+            self.view.layoutIfNeeded()
+            let bottom = max(0, self.scroll.contentSize.height - self.scroll.bounds.height)
+            if self.scroll.contentSize.height > self.scroll.bounds.height {
+                self.scroll.setContentOffset(CGPoint(x: 0, y: bottom), animated: true)
+            }
+        }
     }
 
     deinit {
@@ -78,6 +87,7 @@ final class CommentDetailViewController: UIViewController {
     private func setupScroll() {
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.showsVerticalScrollIndicator = false
+        scroll.keyboardDismissMode = .interactive
         scroll.contentInset.bottom = 40.dp
         view.addSubview(scroll)
         content.axis = .vertical
@@ -213,12 +223,5 @@ final class CommentDetailViewController: UIViewController {
             DemoContent.PostComment(userId: DemoContent.currentUserId, avatar: avatar, name: me, text: t),
             for: item.id)
         syncCommentsFromStore()
-    }
-
-    @objc private func keyboardChange(_ note: Notification) {
-        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let overlap = max(0, view.bounds.height - frame.origin.y)
-        inputBottom.constant = overlap > 0 ? -(overlap + 10.dp - view.safeAreaInsets.bottom) : -10.dp
-        UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
     }
 }

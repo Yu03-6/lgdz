@@ -1,11 +1,13 @@
 import UIKit
 
-/// Screen 7 — Home (Tab). Vertical scroll: Spring banner + Join Now, AI Chat /
-/// Live promo cards, Popular list, "Dog lovers' activities" feed.
+/// Screen 7 — Home (Tab). Vertical scroll: Spring banner + Join Now, walk diary /
+/// dog buddy match, AI Chat / Live promo cards, Popular list, activities feed.
 final class HomeViewController: UIViewController {
 
     private let scroll = UIScrollView()
     private let content = UIStackView()
+    private weak var walkDiaryCard: UIView?
+    private weak var dogMatchCard: UIView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,6 +21,15 @@ final class HomeViewController: UIViewController {
         NotificationCenter.default.addObserver(
             self, selector: #selector(rebuildSections),
             name: .blockStateDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshWalkDiaryCard),
+            name: .walkDiaryDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshDogMatchCard),
+            name: .dogProfileDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(rebuildSections),
+            name: .languageDidChange, object: nil)
     }
 
     deinit {
@@ -28,6 +39,8 @@ final class HomeViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         hideSystemNavBar()
+        refreshWalkDiaryCard()
+        refreshDogMatchCard()
     }
 
     private func setupScroll() {
@@ -65,7 +78,29 @@ final class HomeViewController: UIViewController {
         content.addArrangedSubview(makePromoRow())
         content.setCustomSpacing(56.dp, after: content.arrangedSubviews.last!)
 
-        let popHeader = SectionHeader(title: "Popular")
+        let diaryHeader = SectionHeader(title: L10n.homeWalkDiary)
+        diaryHeader.onMore = { [weak self] in
+            self?.navigationController?.pushViewController(WalkDiaryViewController(), animated: true)
+        }
+        content.addArrangedSubview(diaryHeader)
+        content.setCustomSpacing(28.dp, after: diaryHeader)
+        let diaryCard = makeWalkDiaryCard()
+        walkDiaryCard = diaryCard
+        content.addArrangedSubview(diaryCard)
+        content.setCustomSpacing(56.dp, after: diaryCard)
+
+        let matchHeader = SectionHeader(title: L10n.homeDogMatch)
+        matchHeader.onMore = { [weak self] in
+            self?.navigationController?.pushViewController(DogMatchViewController(), animated: true)
+        }
+        content.addArrangedSubview(matchHeader)
+        content.setCustomSpacing(28.dp, after: matchHeader)
+        let matchCard = makeDogMatchCard()
+        dogMatchCard = matchCard
+        content.addArrangedSubview(matchCard)
+        content.setCustomSpacing(56.dp, after: matchCard)
+
+        let popHeader = SectionHeader(title: L10n.homePopular)
         popHeader.onMore = { [weak self] in
             self?.navigationController?.pushViewController(
                 ActivityListViewController(title: "Activity"), animated: true)
@@ -79,7 +114,7 @@ final class HomeViewController: UIViewController {
             content.setCustomSpacing(i == DemoContent.popular.count - 1 ? 56.dp : 32.dp, after: card)
         }
 
-        let actHeader = SectionHeader(title: "Dog lovers' activities", titleSize: 42)
+        let actHeader = SectionHeader(title: L10n.homeActivities, titleSize: 42)
         actHeader.onMore = { [weak self] in
             (self?.tabBarController as? MainTabBarController)?.selectTab(at: 1)
         }
@@ -121,7 +156,7 @@ final class HomeViewController: UIViewController {
         let titleStyle = NSMutableParagraphStyle()
         titleStyle.lineSpacing = 14.dp
         title.attributedText = NSAttributedString(
-            string: "Spring\nLeash & Meet",
+            string: L10n.homeBannerTitle,
             attributes: [
                 .font: UIFont.systemFont(ofSize: DesignMetrics.font(50), weight: .black),
                 .foregroundColor: DesignTokens.Color.textPrimary,
@@ -131,13 +166,13 @@ final class HomeViewController: UIViewController {
         container.addSubview(title)
 
         let subtitle = UILabel()
-        subtitle.text = "Come join us!"
+        subtitle.text = L10n.homeBannerSubtitle
         subtitle.font = DesignTokens.Font.bold(34)
         subtitle.textColor = DesignTokens.Color.textMuted
         subtitle.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(subtitle)
 
-        let join = PillButton(style: .primary, title: "Join Now ")
+        let join = PillButton(style: .primary, title: L10n.homeJoinNow)
         let cfg = UIImage.SymbolConfiguration(pointSize: DesignMetrics.font(30), weight: .bold)
         join.setImage(UIImage(systemName: "arrow.right", withConfiguration: cfg), for: .normal)
         join.tintColor = DesignTokens.Color.textPrimary
@@ -169,6 +204,160 @@ final class HomeViewController: UIViewController {
 
     @objc private func tapJoinNow() {
         navigationController?.pushViewController(JoinNowViewController(), animated: true)
+    }
+
+    // MARK: - Walk Diary (home preview)
+
+    @objc private func refreshWalkDiaryCard() {
+        guard let card = walkDiaryCard else { return }
+        updateWalkDiaryCard(card)
+    }
+
+    private func makeWalkDiaryCard() -> UIView {
+        let card = UIView()
+        card.backgroundColor = DesignTokens.Color.card
+        card.layer.cornerRadius = 32.dp
+        updateWalkDiaryCard(card)
+        return card
+    }
+
+    private func updateWalkDiaryCard(_ card: UIView) {
+        card.subviews.forEach { $0.removeFromSuperview() }
+
+        let streak = DogWalkingStore.currentStreak()
+        let checkedToday = DogWalkingStore.hasCheckedInToday()
+        let recent = Array(DogWalkingStore.walkDiaryEntries().prefix(2))
+
+        let streakLabel = UILabel()
+        streakLabel.text = "\(streak)-day streak"
+        streakLabel.font = DesignTokens.Font.bold(36)
+        streakLabel.textColor = DesignTokens.Color.textPrimary
+
+        let todayLabel = UILabel()
+        todayLabel.text = checkedToday ? "Checked in today ✓" : "Not checked in yet today"
+        todayLabel.font = DesignTokens.Font.medium(28)
+        todayLabel.textColor = checkedToday ? DesignTokens.Color.accentYellow : DesignTokens.Color.textMuted
+
+        let recentLabel = UILabel()
+        if recent.isEmpty {
+            recentLabel.text = "Log your first walk to start a streak."
+        } else {
+            recentLabel.text = recent.map {
+                "\(DogWalkingStore.relativeDay($0.date)) · \($0.durationMinutes) min"
+            }.joined(separator: "\n")
+        }
+        recentLabel.font = DesignTokens.Font.regular(26)
+        recentLabel.textColor = DesignTokens.Color.textPrimary
+        recentLabel.numberOfLines = 0
+
+        let checkIn = PillButton(
+            style: checkedToday ? .secondary : .primary,
+            title: checkedToday ? "Log Another Walk" : "Check In")
+        checkIn.designCornerRadius = 28
+        checkIn.addTarget(self, action: #selector(tapHomeCheckIn), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [streakLabel, todayLabel, recentLabel, checkIn])
+        stack.axis = .vertical
+        stack.spacing = 16.dp
+        stack.setCustomSpacing(24.dp, after: recentLabel)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            checkIn.heightAnchor.constraint(equalToConstant: 92.dp),
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 28.dp),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -28.dp),
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 28.dp),
+            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -28.dp),
+        ])
+    }
+
+    @objc private func tapHomeCheckIn() {
+        let sheet = WalkCheckInSheetController { note, minutes in
+            DogWalkingStore.addCheckIn(note: note, durationMinutes: minutes)
+        }
+        present(sheet, animated: true)
+    }
+
+    // MARK: - Dog Match (home preview)
+
+    @objc private func refreshDogMatchCard() {
+        guard let card = dogMatchCard else { return }
+        updateDogMatchCard(card)
+    }
+
+    private func makeDogMatchCard() -> UIView {
+        let card = UIView()
+        card.backgroundColor = DesignTokens.Color.card
+        card.layer.cornerRadius = 32.dp
+        updateDogMatchCard(card)
+        return card
+    }
+
+    private func updateDogMatchCard(_ card: UIView) {
+        card.subviews.forEach { $0.removeFromSuperview() }
+
+        let profile = DogWalkingStore.currentUserDogProfile()
+        let matches: [DogMatchResult]
+        if let profile {
+            matches = Array(DogWalkingStore.matchBuddies(query: profile, limit: 3))
+        } else {
+            matches = []
+        }
+
+        let summary = UILabel()
+        if let profile {
+            summary.text = "Your pup: \(profile.dogName.isEmpty ? "My Dog" : profile.dogName) · \(profile.breed) · \(profile.size.rawValue)\n\(profile.personality.joined(separator: " · "))"
+        } else {
+            summary.text = "Set breed, size & personality tags to find walkers with similar dogs."
+        }
+        summary.font = DesignTokens.Font.regular(26)
+        summary.textColor = DesignTokens.Color.textPrimary
+        summary.numberOfLines = 0
+
+        let matchStack = UIStackView()
+        matchStack.axis = .vertical
+        matchStack.spacing = 12.dp
+
+        if matches.isEmpty {
+            let hint = UILabel()
+            hint.text = profile == nil ? "Tap Match Now to get started." : "No close matches — try broader tags."
+            hint.font = DesignTokens.Font.medium(24)
+            hint.textColor = DesignTokens.Color.textMuted
+            hint.numberOfLines = 0
+            matchStack.addArrangedSubview(hint)
+        } else {
+            for result in matches {
+                let row = UILabel()
+                row.text = "\(result.userName) & \(result.dog.dogName) — \(result.matchPercent)% match"
+                row.font = DesignTokens.Font.semibold(26)
+                row.textColor = DesignTokens.Color.textPrimary
+                row.numberOfLines = 0
+                matchStack.addArrangedSubview(row)
+            }
+        }
+
+        let matchBtn = PillButton(style: .primary, title: profile == nil ? "Set Tags & Match" : "Match Now")
+        matchBtn.designCornerRadius = 28
+        matchBtn.addTarget(self, action: #selector(tapDogMatch), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [summary, matchStack, matchBtn])
+        stack.axis = .vertical
+        stack.spacing = 20.dp
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            matchBtn.heightAnchor.constraint(equalToConstant: 92.dp),
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 28.dp),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -28.dp),
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 28.dp),
+            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -28.dp),
+        ])
+    }
+
+    @objc private func tapDogMatch() {
+        navigationController?.pushViewController(DogMatchViewController(), animated: true)
     }
 
     private func makePromoRow() -> UIView {

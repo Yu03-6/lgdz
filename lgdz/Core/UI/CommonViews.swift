@@ -57,23 +57,25 @@ enum AvatarHelper {
 /// Section header: bold title on the left, optional "More >" on the right.
 final class SectionHeader: UIView {
     var onMore: (() -> Void)?
+    private let titleLabel = UILabel()
+    private weak var moreButton: UIButton?
+
     init(title: String, showMore: Bool = true, titleSize: CGFloat = 46) {
         super.init(frame: .zero)
-        let label = UILabel()
-        label.text = title
-        label.font = DesignTokens.Font.bold(titleSize)
-        label.textColor = DesignTokens.Color.textPrimary
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
+        titleLabel.text = title
+        titleLabel.font = DesignTokens.Font.bold(titleSize)
+        titleLabel.textColor = DesignTokens.Color.textPrimary
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(titleLabel)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-            label.topAnchor.constraint(equalTo: topAnchor),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         if showMore {
             let more = UIButton(type: .system)
-            more.setTitle("More ", for: .normal)
+            more.setTitle(L10n.more, for: .normal)
             more.setTitleColor(DesignTokens.Color.textMuted, for: .normal)
             more.titleLabel?.font = DesignTokens.Font.medium(28)
             let cfg = UIImage.SymbolConfiguration(pointSize: DesignMetrics.font(24), weight: .semibold)
@@ -83,13 +85,23 @@ final class SectionHeader: UIView {
             more.addTarget(self, action: #selector(tapMore), for: .touchUpInside)
             more.translatesAutoresizingMaskIntoConstraints = false
             addSubview(more)
+            moreButton = more
             NSLayoutConstraint.activate([
                 more.trailingAnchor.constraint(equalTo: trailingAnchor),
-                more.centerYAnchor.constraint(equalTo: label.centerYAnchor),
+                more.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
             ])
         }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func setTitle(_ title: String) {
+        titleLabel.text = title
+    }
+
+    func refreshMoreTitle() {
+        moreButton?.setTitle(L10n.more, for: .normal)
+    }
+
     @objc private func tapMore() { onMore?() }
 }
 
@@ -156,8 +168,19 @@ final class TagPill: UIButton {
         }
         addTarget(self, action: #selector(tap), for: .touchUpInside)
         applyState(animated: false)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(languageDidChange),
+            name: .languageDidChange, object: nil)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func languageDidChange() {
+        applyState(animated: false)
+    }
 
     func setOn(_ on: Bool, animated: Bool) {
         guard isOn != on else { return }
@@ -178,27 +201,27 @@ final class TagPill: UIButton {
         switch kind {
         case .join:
             if isOn {
-                setTitle("Joined", for: .normal)
+                setTitle(L10n.joined, for: .normal)
                 backgroundColor = DesignTokens.Color.secondaryFill
                 setTitleColor(DesignTokens.Color.textPrimary, for: .normal)
             } else {
-                setTitle("Join", for: .normal)
+                setTitle(L10n.join, for: .normal)
                 backgroundColor = DesignTokens.Color.accentYellow
                 setTitleColor(.white, for: .normal)
             }
         case .follow:
             if isOn {
-                setTitle("Following", for: .normal)
+                setTitle(L10n.following, for: .normal)
                 backgroundColor = DesignTokens.Color.secondaryFill
                 setTitleColor(DesignTokens.Color.textPrimary, for: .normal)
                 setImage(nil, for: .normal)
             } else if followStyle == .live {
-                setTitle("Follow", for: .normal)
+                setTitle(L10n.follow.trimmingCharacters(in: .whitespaces), for: .normal)
                 backgroundColor = DesignTokens.Color.accentYellow
                 setTitleColor(.white, for: .normal)
                 setImage(nil, for: .normal)
             } else {
-                setTitle(" Follow", for: .normal)
+                setTitle(L10n.follow, for: .normal)
                 backgroundColor = DesignTokens.Color.textPrimary
                 setTitleColor(.white, for: .normal)
                 let cfg = UIImage.SymbolConfiguration(pointSize: DesignMetrics.font(28), weight: .bold)

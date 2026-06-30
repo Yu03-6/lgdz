@@ -95,7 +95,6 @@ final class RechargeViewController: UIViewController {
         view.addSubview(header)
 
         let balance = makeBalanceCard()
-        view.addSubview(balance)
 
         let choose = UILabel()
         choose.text = "Choose a package"
@@ -113,7 +112,6 @@ final class RechargeViewController: UIViewController {
         packageSection.axis = .vertical
         packageSection.spacing = Layout.chooseToGrid.dp
         packageSection.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(packageSection)
 
         var rowConstraints: [NSLayoutConstraint] = []
         var tileIndex = 0
@@ -144,12 +142,24 @@ final class RechargeViewController: UIViewController {
 
         let footer = UILabel()
         footer.text = "*Use coins to unlock posting features\nand chat with AI*"
-        footer.numberOfLines = 2
+        footer.numberOfLines = 0
         footer.textAlignment = .center
         footer.font = DesignTokens.Font.regular(26)
         footer.textColor = DesignTokens.Color.textMuted
         footer.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(footer)
+
+        let scroll = UIScrollView()
+        scroll.showsVerticalScrollIndicator = false
+        scroll.alwaysBounceVertical = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scroll)
+
+        let scrollContent = UIView()
+        scrollContent.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(scrollContent)
+        scrollContent.addSubview(balance)
+        scrollContent.addSubview(packageSection)
+        scrollContent.addSubview(footer)
 
         NSLayoutConstraint.activate(rowConstraints + [
             header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -157,23 +167,33 @@ final class RechargeViewController: UIViewController {
             header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             header.heightAnchor.constraint(equalToConstant: NavHeader.designHeight.dp),
 
-            balance.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 20.dp),
-            balance.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            balance.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            balance.topAnchor.constraint(equalTo: scrollContent.topAnchor, constant: 20.dp),
+            balance.leadingAnchor.constraint(equalTo: scrollContent.leadingAnchor, constant: margin),
+            balance.trailingAnchor.constraint(equalTo: scrollContent.trailingAnchor, constant: -margin),
             balance.heightAnchor.constraint(equalToConstant: 200.dp),
 
             packageSection.topAnchor.constraint(
                 equalTo: balance.bottomAnchor, constant: Layout.balanceToChoose.dp),
-            packageSection.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            packageSection.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            packageSection.leadingAnchor.constraint(equalTo: scrollContent.leadingAnchor, constant: margin),
+            packageSection.trailingAnchor.constraint(equalTo: scrollContent.trailingAnchor, constant: -margin),
 
             footer.topAnchor.constraint(
                 equalTo: packageSection.bottomAnchor, constant: Layout.gridToFooter.dp),
-            footer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            footer.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: margin),
-            footer.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -margin),
-            footer.bottomAnchor.constraint(
-                lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30.dp),
+            footer.centerXAnchor.constraint(equalTo: scrollContent.centerXAnchor),
+            footer.leadingAnchor.constraint(greaterThanOrEqualTo: scrollContent.leadingAnchor, constant: margin),
+            footer.trailingAnchor.constraint(lessThanOrEqualTo: scrollContent.trailingAnchor, constant: -margin),
+            footer.bottomAnchor.constraint(equalTo: scrollContent.bottomAnchor, constant: -30.dp),
+
+            scroll.topAnchor.constraint(equalTo: header.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+
+            scrollContent.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
+            scrollContent.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+            scrollContent.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
+            scrollContent.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
+            scrollContent.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
         ])
     }
 

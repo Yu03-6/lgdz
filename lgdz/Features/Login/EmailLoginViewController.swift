@@ -5,40 +5,30 @@ import UIKit
 final class EmailLoginViewController: UIViewController {
 
     private let bg = UIImageView()
-    private let scroll = UIScrollView()
     private let content = UIView()
     private let emailField = InputField(title: "Email", placeholder: "Your email address")
     private let passwordField = InputField(title: "Password", placeholder: "Your password", secure: true)
     private let signInButton = PillButton(style: .primary, title: "Sign in")
     private let footer = UILabel()
-    private var keyboardAvoidance: KeyboardFormAvoidance?
+    private var keyboardAvoidance: KeyboardShiftAvoidance?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         TPChrome.addBackground(to: view)
         hideSystemNavBar()
         setupBackground()
-        setupScroll()
+        setupContent()
         setupFields()
         setupFooter()
         emailField.textField.keyboardType = .emailAddress
-        keyboardAvoidance = KeyboardFormAvoidance()
-        keyboardAvoidance?.attach(scrollView: scroll, hostView: view, baseBottomInset: 32.dp)
+        keyboardAvoidance = KeyboardShiftAvoidance()
+        keyboardAvoidance?.attach(hostView: view, contentView: content, actionButtons: [signInButton])
+        KeyboardDismiss.installTapToDismiss(on: view, target: self, action: #selector(dismissKeyboard))
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         hideSystemNavBar()
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        // Disable scrolling when the form fits — keeps Sign in visible without swiping.
-        let fits = scroll.contentSize.height <= scroll.bounds.height + 1
-        scroll.isScrollEnabled = !fits
-        if fits {
-            scroll.contentOffset = .zero
-        }
     }
 
     private func setupBackground() {
@@ -55,32 +45,20 @@ final class EmailLoginViewController: UIViewController {
         ])
     }
 
-    private func setupScroll() {
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.keyboardDismissMode = .interactive
-        scroll.showsVerticalScrollIndicator = false
-        scroll.alwaysBounceVertical = true
-        view.addSubview(scroll)
+    private func setupContent() {
         content.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(content)
+        view.addSubview(content)
         NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: view.topAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            content.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
-            content.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
-            content.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
-            content.heightAnchor.constraint(greaterThanOrEqualTo: scroll.frameLayoutGuide.heightAnchor),
+            content.topAnchor.constraint(equalTo: view.topAnchor),
+            content.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
     private func setupFields() {
         let margin = 60.dp
         let fieldSpacing = 55.dp
-        // Design gap from password bottom (y≈1249) to sign-in top (y=1358).
         let signInGap = 109.dp
 
         [emailField, passwordField, signInButton].forEach {
@@ -89,7 +67,6 @@ final class EmailLoginViewController: UIViewController {
         }
         signInButton.addTarget(self, action: #selector(tapSignIn), for: .touchUpInside)
 
-        // Email group top ≈ design y 830; allow upward shift on shorter viewports (iPad).
         let designEmailTop = emailField.topAnchor.constraint(equalTo: content.topAnchor, constant: 830.dp)
         designEmailTop.priority = UILayoutPriority(750)
 
@@ -99,7 +76,7 @@ final class EmailLoginViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             designEmailTop,
-            emailField.topAnchor.constraint(greaterThanOrEqualTo: content.topAnchor, constant: 12.dp),
+            emailField.topAnchor.constraint(greaterThanOrEqualTo: content.safeAreaLayoutGuide.topAnchor, constant: 12.dp),
             emailField.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
             emailField.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
 
@@ -136,8 +113,12 @@ final class EmailLoginViewController: UIViewController {
         NSLayoutConstraint.activate([
             footer.centerXAnchor.constraint(equalTo: content.centerXAnchor),
             footer.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: 36.dp),
-            footer.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -40.dp),
+            footer.bottomAnchor.constraint(lessThanOrEqualTo: content.safeAreaLayoutGuide.bottomAnchor, constant: -40.dp),
         ])
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
 
     @objc private func tapSignIn() {

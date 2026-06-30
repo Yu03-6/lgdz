@@ -7,9 +7,8 @@ final class RegisterStep2ViewController: UIViewController {
     private let email: String
     private let password: String
 
-    private let scroll = UIScrollView()
     private let content = UIView()
-    private var keyboardAvoidance: KeyboardFormAvoidance?
+    private var keyboardAvoidance: KeyboardShiftAvoidance?
 
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
@@ -50,13 +49,8 @@ final class RegisterStep2ViewController: UIViewController {
         header.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(header)
 
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.keyboardDismissMode = .interactive
-        scroll.showsVerticalScrollIndicator = false
-        scroll.alwaysBounceVertical = true
-        view.addSubview(scroll)
         content.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(content)
+        view.addSubview(content)
 
         titleLabel.text = "Complete the data"
         titleLabel.font = DesignTokens.Font.bold(50)
@@ -109,17 +103,10 @@ final class RegisterStep2ViewController: UIViewController {
             header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             header.heightAnchor.constraint(equalToConstant: NavHeader.designHeight.dp),
 
-            scroll.topAnchor.constraint(equalTo: header.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            content.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
-            content.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
-            content.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
-            content.heightAnchor.constraint(greaterThanOrEqualTo: scroll.frameLayoutGuide.heightAnchor),
+            content.topAnchor.constraint(equalTo: header.bottomAnchor),
+            content.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 30.dp),
             titleLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
@@ -160,11 +147,17 @@ final class RegisterStep2ViewController: UIViewController {
             createButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             createButton.trailingAnchor.constraint(equalTo: nickField.trailingAnchor),
             createButton.heightAnchor.constraint(equalToConstant: 120.dp),
-            createButton.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -100.dp),
+            createButton.bottomAnchor.constraint(
+                lessThanOrEqualTo: content.safeAreaLayoutGuide.bottomAnchor, constant: -40.dp),
         ])
 
-        keyboardAvoidance = KeyboardFormAvoidance()
-        keyboardAvoidance?.attach(scrollView: scroll, hostView: view, baseBottomInset: 32.dp)
+        keyboardAvoidance = KeyboardShiftAvoidance()
+        keyboardAvoidance?.attach(hostView: view, contentView: content, actionButtons: [createButton])
+        KeyboardDismiss.installTapToDismiss(on: view, target: self, action: #selector(dismissKeyboard))
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
 
     @objc private func tapCreate() {

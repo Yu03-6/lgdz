@@ -6,14 +6,13 @@ import UIKit
 /// Email format is validated; passwords must match before continuing.
 final class RegisterStep1ViewController: UIViewController {
 
-    private let scroll = UIScrollView()
     private let content = UIView()
     private let emailField = InputField(title: "Email", placeholder: "Your email address")
     private let passwordField = InputField(title: "Password", placeholder: "Your password", secure: true)
     private let confirmField = InputField(title: "Password again", placeholder: "Your password", secure: true)
     private let nextButton = PillButton(style: .primary, title: "Next")
     private let footer = UILabel()
-    private var keyboardAvoidance: KeyboardFormAvoidance?
+    private var keyboardAvoidance: KeyboardShiftAvoidance?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,13 +25,8 @@ final class RegisterStep1ViewController: UIViewController {
         header.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(header)
 
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.keyboardDismissMode = .interactive
-        scroll.showsVerticalScrollIndicator = false
-        scroll.alwaysBounceVertical = true
-        view.addSubview(scroll)
         content.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(content)
+        view.addSubview(content)
 
         emailField.textField.keyboardType = .emailAddress
         [emailField, passwordField, confirmField, nextButton].forEach {
@@ -49,17 +43,10 @@ final class RegisterStep1ViewController: UIViewController {
             header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             header.heightAnchor.constraint(equalToConstant: NavHeader.designHeight.dp),
 
-            scroll.topAnchor.constraint(equalTo: header.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            content.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
-            content.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
-            content.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
-            content.heightAnchor.constraint(greaterThanOrEqualTo: scroll.frameLayoutGuide.heightAnchor),
+            content.topAnchor.constraint(equalTo: header.bottomAnchor),
+            content.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             emailField.topAnchor.constraint(equalTo: content.topAnchor, constant: 90.dp),
             emailField.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
@@ -80,11 +67,12 @@ final class RegisterStep1ViewController: UIViewController {
 
             footer.centerXAnchor.constraint(equalTo: content.centerXAnchor),
             footer.topAnchor.constraint(equalTo: nextButton.bottomAnchor, constant: 36.dp),
-            footer.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -40.dp),
+            footer.bottomAnchor.constraint(lessThanOrEqualTo: content.safeAreaLayoutGuide.bottomAnchor, constant: -40.dp),
         ])
 
-        keyboardAvoidance = KeyboardFormAvoidance()
-        keyboardAvoidance?.attach(scrollView: scroll, hostView: view, baseBottomInset: 32.dp)
+        keyboardAvoidance = KeyboardShiftAvoidance()
+        keyboardAvoidance?.attach(hostView: view, contentView: content, actionButtons: [nextButton])
+        KeyboardDismiss.installTapToDismiss(on: view, target: self, action: #selector(dismissKeyboard))
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -114,6 +102,10 @@ final class RegisterStep1ViewController: UIViewController {
     private func isValidEmail(_ s: String) -> Bool {
         let pattern = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
         return s.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
 
     @objc private func tapNext() {
