@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m2
     
     integrations:
-      app_store_connect: vivi  # TODO: 改成你的 App Store Connect 集成名称
+      app_store_connect: Nuviy  # TODO: 改成你的 App Store Connect 集成名称
     
     environment:
       ios_signing:
